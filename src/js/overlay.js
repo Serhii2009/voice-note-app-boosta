@@ -1,21 +1,17 @@
-// Minimal script for the overlay pill window.
-// This window appears when recording via global hotkey.
-// It has no interactive elements — just visual feedback.
+// Persistent ambient overlay — always visible while the app is running.
+// Starts in idle (dark) state from CSS; switches to recording (red + glow)
+// when the global hotkey recording is active.
+//
+// State changes arrive as Tauri events emitted by show_overlay / hide_overlay
+// Rust commands (which no longer create or destroy this window).
 
-// The overlay is destroyed by Rust when recording stops,
-// so no additional logic is needed here. The pill is always
-// in "Recording..." state while this window is alive.
+const capsule = document.getElementById('capsule');
+const { listen } = window.__TAURI__.event;
 
-// If the API key is missing, the overlay shows an error message.
-// This is communicated via the window label or by passing data
-// through the URL hash when the window is created.
-
-const label = document.getElementById('label');
-const pill = document.getElementById('pill');
-
-// Check if we were opened with an error flag (future enhancement)
-const params = new URLSearchParams(window.location.search);
-if (params.get('error')) {
-  pill.classList.add('error');
-  label.textContent = params.get('error');
-}
+listen('overlay-state', (event) => {
+  if (event.payload && event.payload.state === 'recording') {
+    capsule.classList.add('recording');
+  } else {
+    capsule.classList.remove('recording');
+  }
+});

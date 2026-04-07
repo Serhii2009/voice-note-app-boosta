@@ -5,7 +5,7 @@ import { AudioRecorder } from '../audio.js';
 
 let recorder = null;
 
-async function handleToggle() {
+async function handleToggle(viaHotkey = false, willInsert = false) {
   // Guard: no API key
   if (!store.settings.geminiApiKey) {
     store.settingsPanelOpen = true;
@@ -21,6 +21,7 @@ async function handleToggle() {
 
   if (!store.isRecording) {
     // START recording
+    // TODO(future): hold-to-record mode — start on hotkey down, stop on hotkey up
     try {
       recorder = new AudioRecorder();
       store.isRecording = true;
@@ -32,7 +33,7 @@ async function handleToggle() {
         showToast('Maximum recording length reached (20 min)', 'info');
       }
 
-      await processAudio(result.data, result.mimeType);
+      await processAudio(result.data, result.mimeType, viaHotkey, willInsert);
     } catch (err) {
       recorder = null;
       store.isRecording = false;
@@ -55,19 +56,30 @@ async function handleToggle() {
   }
 }
 
-async function processAudio(audioData, mimeType) {
+async function processAudio(audioData, mimeType, viaHotkey = false, willInsert = false) {
   store.isRecording = false;
   store.isProcessing = true;
   // Hide overlay (no-op if recording was via button and overlay doesn't exist)
   api.hideOverlay().catch(() => {});
   try {
-    const note = await api.transcribeAudio(audioData, mimeType);
-    if (note === 'empty_transcription' || !note) {
-      showToast('No speech detected', 'info');
-      return;
+    if (viaHotkey && willInsert) {
+      // Insert-only path: transcribe without saving, paste into external text field.
+      // The note is NOT added to the app's note list.
+      const note = await api.transcribeAudio(audioData, mimeType, false);
+      if (!note || !note.transcription || !note.transcription.trim()) {
+        showToast('No speech detected', 'info');
+        return;
+      }
+      api.autoInsertText(note.transcription).catch(() => {});
+    } else {
+      // Save-only path: transcribe and persist note, show it in the list.
+      const note = await api.transcribeAudio(audioData, mimeType, true);
+      if (note === 'empty_transcription' || !note) {
+        showToast('No speech detected', 'info');
+        return;
+      }
+      store.notes.unshift(note);
     }
-    // Note is already saved by Rust; add to store
-    store.notes.unshift(note);
   } catch (err) {
     const msg = String(err);
     if (msg.includes('empty_transcription')) {

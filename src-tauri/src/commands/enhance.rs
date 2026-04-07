@@ -8,16 +8,29 @@ use crate::{
 
 #[tauri::command]
 pub async fn enhance_text(state: State<'_, AppState>, text: String) -> Result<String> {
-    let (api_key, model_name) = {
+    let api_key = {
         let settings = state.settings.lock().unwrap();
         if settings.gemini_api_key.is_empty() {
             return Err(AppError::NoApiKey);
         }
-        (settings.gemini_api_key.clone(), settings.model_name.clone())
+        settings.gemini_api_key.clone()
     };
 
+    // Enhancement is a simple text-to-text cleanup task — gemini-2.5-flash-lite is
+    // the correct choice: lowest cost and latency, quality is sufficient. Hardcoded
+    // intentionally; the user-selected transcription model does not apply here.
+    let enhance_model = "gemini-2.5-flash-lite";
+
     let prompt = format!(
-        "Clean up this voice transcription. Remove filler words (um, uh, like, you know, and similar in any language). Fix grammar and punctuation. Improve sentence flow and readability. Preserve the original meaning exactly — do not summarize, condense, or add any new content. Return only the cleaned text:\n\n{}",
+        "Clean up this voice transcription. Do not summarize, translate, or add content. \
+Output only the cleaned text with no preamble.\n\n\
+Remove filler words and sounds:\n\
+- English: um, uh, like, you know, so, basically, literally, right, kind of, sort of\n\
+- Russian: э, эм, ну, короче, значит, типа, вот\n\
+- Ukrainian: е, ем, ну, значить, типу, короче, от\n\n\
+Fix punctuation and capitalization. Break obvious run-on sentences where the boundary is \
+clear from context. Correct unambiguous speech-to-text errors. Preserve the original \
+meaning, tone, language, and structure exactly.\n\n{}",
         text
     );
 
@@ -32,7 +45,7 @@ pub async fn enhance_text(state: State<'_, AppState>, text: String) -> Result<St
 
     let url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-        model_name, api_key
+        enhance_model, api_key
     );
 
     let client = reqwest::Client::new();

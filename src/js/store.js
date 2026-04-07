@@ -4,7 +4,7 @@ export const store = reactive({
   notes: [],
   settings: {
     geminiApiKey: '',
-    modelName: 'gemini-2.5-pro',
+    modelName: 'gemini-2.5-flash',
     noteCounter: 0,
   },
   isRecording: false,

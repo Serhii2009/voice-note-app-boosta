@@ -1,46 +1,41 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  background-color: transparent;
+}
+
 body {
+  width: 100%;
+  height: 100%;
+  /* transparent is required on macOS — WKWebView will render an opaque background
+     unless both html and body explicitly have background: transparent set */
+  background: transparent;
+  background-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  background: transparent;
-  font-family: system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
 
-.pill {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #e53935;
-  color: #fff;
-  padding: 0 20px;
-  height: 44px;
-  border-radius: 22px;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-  user-select: none;
-  white-space: nowrap;
-}
-
-.pill.error {
-  background: #424242;
-}
-
-.dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #fff;
-  animation: blink 1.2s ease-in-out infinite;
+.capsule {
+  width: 44px;
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(40, 40, 40, 0.75);
+  transition: background 200ms ease, box-shadow 200ms ease;
   flex-shrink: 0;
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.3; }
+/* Recording state: vivid red with a slow pulsing glow */
+.capsule.recording {
+  background: #E53E3E;
+  animation: glow-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(229, 62, 62, 0.3); }
+  50%       { box-shadow: 0 0 6px 2px rgba(229, 62, 62, 0.8); }
 }

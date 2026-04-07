@@ -7,6 +7,8 @@ import { NoteDetailModal } from './components/NoteDetailModal.js';
 import { SettingsPanel } from './components/SettingsPanel.js';
 import { ToastNotification } from './components/ToastNotification.js';
 
+const { listen } = window.__TAURI__.event;
+
 const App = defineComponent({
   name: 'App',
   setup() {
@@ -41,12 +43,25 @@ const App = defineComponent({
           store.settingsPanelRequired = true;
           return;
         }
-        // Show overlay when starting via hotkey; hide is called in processAudio (idempotent)
+        let willInsert = false;
         if (!store.isRecording && !store.isProcessing) {
+          // await captureTargetFocus so focus is read before anything changes.
+          // Returns true if an external text target was captured.
+          willInsert = await api.captureTargetFocus().catch(() => false);
+          // showOverlay is visual-only — fire-and-forget so it cannot delay
+          // handleRecordToggle. Awaiting window creation (old design) caused a
+          // race: a second hotkey press would arrive while the first was blocked,
+          // see isRecording=false, re-enter the start branch, and immediately
+          // stop the recording the second handler had just started.
           api.showOverlay().catch(() => {});
         }
-        await handleRecordToggle();
+        await handleRecordToggle(true, willInsert); // viaHotkey=true, willInsert
       });
+
+      // macOS: show a one-time toast if Accessibility permission is not granted.
+      listen('accessibility-warning', (event) => {
+        showToast(event.payload, 'info', 6000);
+      }).catch(() => {});
     });
 
     function openNote(id) {

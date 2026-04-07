@@ -28,9 +28,14 @@ export async function saveApiKey(apiKey) {
   return invoke('save_api_key', { apiKey });
 }
 
-export async function transcribeAudio(audioData, mimeType) {
-  // audioData: Array of numbers (from Uint8Array)
-  return invoke('transcribe_audio', { audioData, mimeType });
+export async function saveModel(modelName) {
+  return invoke('save_model', { modelName });
+}
+
+// save=true (default): transcribe and persist note.
+// save=false: transcribe only — returns note shape with .transcription but nothing is saved.
+export async function transcribeAudio(audioData, mimeType, save = true) {
+  return invoke('transcribe_audio', { audioData, mimeType, save });
 }
 
 export async function enhanceText(text) {
@@ -43,6 +48,14 @@ export async function showOverlay() {
 
 export async function hideOverlay() {
   return invoke('hide_overlay');
+}
+
+export async function captureTargetFocus() {
+  return invoke('capture_target_focus');
+}
+
+export async function autoInsertText(text) {
+  return invoke('auto_insert_text', { text });
 }
 
 export function onHotkeyToggle(callback) {

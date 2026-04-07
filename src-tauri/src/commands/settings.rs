@@ -21,3 +21,12 @@ pub async fn save_api_key(state: State<'_, AppState>, api_key: String) -> Result
     settings_store::save(&state.data_dir, &settings)?;
     Ok(())
 }
+
+/// Only updates the transcription model. Never touches gemini_api_key or note_counter.
+#[tauri::command]
+pub async fn save_model(state: State<'_, AppState>, model_name: String) -> Result<()> {
+    let mut settings = state.settings.lock().unwrap();
+    settings.model_name = model_name;
+    settings_store::save(&state.data_dir, &settings)?;
+    Ok(())
+}

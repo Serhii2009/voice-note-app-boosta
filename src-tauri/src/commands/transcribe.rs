@@ -11,11 +11,15 @@ use crate::{
     AppState,
 };
 
+/// `save = true` (default): transcribe and persist the note.
+/// `save = false`: transcribe only — return the note shape but skip disk write and counter.
+/// Used for hotkey recordings where text is auto-inserted into another app instead.
 #[tauri::command]
 pub async fn transcribe_audio(
     state: State<'_, AppState>,
     audio_data: Vec<u8>,
     mime_type: String,
+    save: bool,
 ) -> Result<Note> {
     let (api_key, model_name) = {
         let settings = state.settings.lock().unwrap();
@@ -50,6 +54,20 @@ pub async fn transcribe_audio(
 
     if transcription.trim().is_empty() {
         return Err(AppError::GeminiApi("empty_transcription".to_string()));
+    }
+
+    if !save {
+        // Transcribe-only path: return the text without persisting anything.
+        // The note object is returned so JS can read .transcription uniformly,
+        // but it is not stored to disk or added to the notes list.
+        return Ok(Note {
+            id: String::new(),
+            auto_title: String::new(),
+            user_title: None,
+            transcription,
+            enhanced_text: None,
+            created_at: Utc::now(),
+        });
     }
 
     // Increment note_counter and generate auto-title

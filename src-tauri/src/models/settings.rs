@@ -13,7 +13,7 @@ pub struct Settings {
 }
 
 fn default_model() -> String {
-    "gemini-2.5-pro".to_string()
+    "gemini-2.5-flash".to_string()
 }
 
 impl Default for Settings {

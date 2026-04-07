@@ -2,6 +2,12 @@ import { defineComponent, h, ref } from '../../js/vendor/vue.esm-browser.prod.js
 import { store, showToast } from '../store.js';
 import * as api from '../api.js';
 
+const MODELS = [
+  { value: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        hint: 'Highest accuracy' },
+  { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      hint: 'Fast · Lower cost' },
+  { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', hint: 'Fastest · Cheapest' },
+];
+
 export const SettingsPanel = defineComponent({
   name: 'SettingsPanel',
   setup() {
@@ -9,11 +15,13 @@ export const SettingsPanel = defineComponent({
     const keyVisible = ref(false);
     const keyError = ref('');
     const saving = ref(false);
+    const selectedModel = ref(store.settings.modelName || 'gemini-2.5-flash');
 
-    // Initialize with current value when panel opens
+    // Initialize with current values when panel opens
     function onPanelOpen() {
       keyValue.value = store.settings.geminiApiKey || '';
       keyError.value = '';
+      selectedModel.value = store.settings.modelName || 'gemini-2.5-flash';
     }
 
     async function save() {
@@ -28,11 +36,20 @@ export const SettingsPanel = defineComponent({
       }
       saving.value = true;
       try {
+        // API key is the critical path — if it fails, abort and surface the error.
         await api.saveApiKey(keyValue.value.trim());
         store.settings.geminiApiKey = keyValue.value.trim();
+        // Model save is secondary — if it fails, log internally but do not show
+        // a confusing error since the API key was already saved successfully.
+        try {
+          await api.saveModel(selectedModel.value);
+          store.settings.modelName = selectedModel.value;
+        } catch (err) {
+          console.error('Failed to save model selection:', err);
+        }
         store.settingsPanelRequired = false;
         store.settingsPanelOpen = false;
-        showToast('API key saved', 'info');
+        showToast('Settings saved', 'info');
       } catch (err) {
         showToast('Failed to save: ' + String(err), 'error');
       } finally {
@@ -119,10 +136,16 @@ export const SettingsPanel = defineComponent({
               keyError.value && h('div', { class: 'input-error' }, keyError.value),
             ]),
 
-            // Model (read-only)
+            // Transcription model selector
             h('div', { class: 'form-group' }, [
-              h('label', {}, 'Model'),
-              h('div', { class: 'form-readonly' }, 'Gemini 2.5 Pro'),
+              h('label', {}, 'Transcription Model'),
+              h('select', {
+                value: selectedModel.value,
+                onChange: (e) => { selectedModel.value = e.target.value; },
+                class: 'form-select',
+              }, MODELS.map(m =>
+                h('option', { value: m.value }, `${m.label} — ${m.hint}`)
+              )),
             ]),
 
             // Privacy note

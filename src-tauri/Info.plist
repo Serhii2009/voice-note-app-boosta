@@ -4,5 +4,7 @@
 <dict>
   <key>NSMicrophoneUsageDescription</key>
   <string>VoiceNote needs microphone access to record voice notes.</string>
+  <key>NSAccessibilityUsageDescription</key>
+  <string>VoiceNote uses accessibility access to insert transcribed text into the active text field.</string>
 </dict>
 </plist>
